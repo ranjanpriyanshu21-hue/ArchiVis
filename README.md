@@ -62,24 +62,29 @@ This is currently a simple implementation, with plans to expand it into a more c
 * Tailwind CSS
 * JavaScript/HTML/CSS
 
-### Current Architecture
+### Backend
 
-ArchiVis is currently a **frontend-focused application**. The present version handles the user interface, interactions, architectural discovery experience, filtering, search, and rule-based assistant on the client side.
+* Node.js + Express
+* MySQL 8 (`mysql2`, raw SQL — no ORM)
+* JWT authentication with bcrypt password hashing
+* dotenv + CORS
 
-### Planned Backend
+### Architecture
 
-A backend layer is planned for future development.
+The React frontend talks to the Express API over REST; the API owns all designs, architects,
+styles, testimonials, favourites, inquiries and the rule-based matcher, backed by MySQL.
 
-The planned backend will allow ArchiVis to move beyond static/frontend data and support features such as:
-
-* Architect and property databases
-* User accounts and profiles
-* Saved architects and houses
-* Dynamic property listings
-* Personalized recommendations
-* User preference storage
-* API-based search and filtering
-* A more advanced AI recommendation system
+```
+src/                 React UI (unchanged visual design) + src/api API client
+backend/             Express REST API
+  config/            env + MySQL pool
+  routes/            route definitions
+  controllers/       request handling
+  models/            SQL queries
+  services/          rule-based AI matcher
+  middleware/        auth, validation, error handling
+  database/          schema.sql, migrate.js, seed.js
+```
 
 ---
 
@@ -89,15 +94,16 @@ ArchiVis is being developed as a larger architecture discovery platform rather t
 
 Future improvements include:
 
-* [ ] Backend integration
-* [ ] Database for architects and properties
-* [ ] User authentication
+* [x] Backend integration
+* [x] Database for architects and properties
+* [x] User authentication
+* [x] Save/favourite architects and houses
+* [x] Advanced architectural style filtering
+* [x] API-based search and filtering
+* [x] Architect/project comparison
 * [ ] Personalized recommendations
-* [ ] Save/favourite architects and houses
-* [ ] Advanced architectural style filtering
 * [ ] Real-time property availability
-* [ ] Improved AI-based recommendations
-* [ ] Architect/project comparison
+* [ ] Improved AI-based recommendations (ML instead of rule-based)
 * [ ] User-specific architectural profiles
 
 ---
@@ -108,25 +114,140 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/ranjanpriyanshu21-hue/ArchiVis.git
-```
-
-Navigate to the project:
-
-```bash
 cd ArchiVis
 ```
 
-Install dependencies:
+### 1. Database (MySQL 8)
+
+Use an existing MySQL server, or start one with Docker:
 
 ```bash
+docker run --name archivis-mysql -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=archivis -p 3306:3306 -d mysql:8.0
+```
+
+With a locally installed MySQL instead:
+
+```sql
+CREATE DATABASE archivis CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 2. Backend
+
+```bash
+cd backend
+cp .env.example .env      # then fill in DB_PASSWORD and JWT_SECRET
 npm install
+npm run db:reset          # creates the schema and loads seed data
+npm run dev               # http://localhost:5000/api
 ```
 
-Start the development server:
+Backend environment variables (`backend/.env.example`):
+
+| Variable | Description |
+| --- | --- |
+| `PORT` | API port (default `5000`) |
+| `NODE_ENV` | `development` / `production` |
+| `CORS_ORIGIN` | Allowed frontend origin (default `http://localhost:5173`) |
+| `DB_HOST` / `DB_PORT` | MySQL host and port |
+| `DB_USER` / `DB_PASSWORD` | MySQL credentials |
+| `DB_NAME` | Database name (default `archivis`) |
+| `JWT_SECRET` | Long random string used to sign tokens |
+| `JWT_EXPIRES_IN` | Token lifetime (default `7d`) |
+
+Database scripts: `npm run db:migrate` (schema), `npm run db:seed` (seed data),
+`npm run db:reset` (both).
+
+The seed data includes a demo account — `demo@archivis.dev` / `password123` — for local testing only.
+
+### 3. Frontend
+
+In a second terminal, from the repository root:
 
 ```bash
-npm run dev
+cp .env.example .env      # optional: only if the API is not on http://localhost:5000/api
+npm install
+npm run dev               # http://localhost:5173
 ```
+
+| Variable | Description |
+| --- | --- |
+| `VITE_API_URL` | Backend API base URL (default `http://localhost:5000/api`) |
+
+---
+
+## 🔌 API Reference
+
+Base URL: `http://localhost:5000/api`
+
+### Catalog
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Service and database health |
+| `GET` | `/styles` | Style filters with design counts |
+| `GET` | `/designs` | List designs. Query: `q`, `style`, `maxBudget`, `sort` (`rating` \| `budget-low` \| `budget-high`), `featured`, `architectId`, `limit`, `offset` |
+| `GET` | `/designs/:id` | Design detail + its architect + similar designs |
+| `GET` | `/architects` | List architects. Query: `q`, `style` |
+| `GET` | `/architects/:id` | Architect detail + portfolio |
+| `GET` | `/testimonials` | Client testimonials |
+
+### Matching and forms
+
+| Method | Endpoint | Body | Description |
+| --- | --- | --- | --- |
+| `POST` | `/ai/match` | `{ prompt }` | Rule-based matcher → `{ reply, matched, results }` |
+| `POST` | `/inquiries` | `{ name, email, subject, message, architectId? }` | Contact form |
+| `POST` | `/newsletter` | `{ email }` | Newsletter subscription |
+
+### Authentication
+
+| Method | Endpoint | Body | Description |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | `{ name, email, password }` | Create account → `{ token, user }` |
+| `POST` | `/auth/login` | `{ email, password }` | Sign in → `{ token, user }` |
+| `GET` | `/auth/me` | — | Current user (requires `Authorization: Bearer <token>`) |
+
+Passwords are hashed with bcrypt and never returned by the API.
+
+### Favourites (all require `Authorization: Bearer <token>`)
+
+| Method | Endpoint | Body | Description |
+| --- | --- | --- | --- |
+| `GET` | `/favorites` | — | Saved design ids + designs |
+| `POST` | `/favorites` | `{ designId }` | Save a design |
+| `POST` | `/favorites/sync` | `{ designIds }` | Merge anonymous favourites after sign-in |
+| `DELETE` | `/favorites/:designId` | — | Remove a saved design |
+
+Signed-out visitors keep favourites in `localStorage`; they are merged into the account on the
+next sign-in.
+
+### Database schema
+
+`users`, `styles`, `architects`, `architect_specialties`, `architect_awards`, `designs`,
+`design_images`, `design_tags`, `design_materials`, `favorites`, `inquiries`, `testimonials`,
+`newsletter_subscribers` — see `backend/database/schema.sql` for keys, foreign keys and indexes.
+
+---
+
+## 🧪 Testing
+
+```bash
+# frontend
+npm run typecheck
+npm run build
+
+# backend (with MySQL running and seeded)
+cd backend && npm run db:reset && npm run dev
+curl http://localhost:5000/api/health
+curl "http://localhost:5000/api/designs?style=Minimalist&sort=rating"
+curl -X POST http://localhost:5000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"demo@archivis.dev","password":"password123"}'
+```
+
+Then open http://localhost:5173 and check the landing page, Explore search/filters, a design
+detail page, an architect profile, the AI matcher, saving designs, and the contact form.
 
 ---
 
@@ -144,8 +265,7 @@ Whether someone wants a quiet minimalist home surrounded by nature, a bold maxim
 
 ## 📌 Project Status
 
-**Current Status:** Frontend development
+**Current Status:** Full-stack — React frontend connected to an Express + MySQL backend.
 
-The current version focuses on the architecture discovery experience, UI, search/filtering functionality, house and architect exploration, and a basic rule-based assistant.
-
-**Backend and advanced recommendation functionality are planned for future development.**
+Designs, architects, styles, testimonials, favourites, inquiries and the matcher are served from
+the database. A machine-learning recommendation engine remains future work.

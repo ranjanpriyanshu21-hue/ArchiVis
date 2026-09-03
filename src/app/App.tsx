@@ -5,233 +5,19 @@ import {
   ChevronDown, MessageSquare, Send, Building2, Award, Users, ArrowRight,
   Check, Share2, Phone, Mail, Instagram, Linkedin, Zap, Sparkles,
   Bot, Trash2, ExternalLink, Filter, Twitter, Globe, Plus, Minus,
-  Bookmark, Home, Compass, GitCompare, TrendingUp, Quote, SlidersHorizontal
+  Bookmark, Home, Compass, GitCompare, TrendingUp, Quote, SlidersHorizontal,
+  LogIn, LogOut, Loader2, AlertCircle
 } from "lucide-react";
 import { href } from "react-router";
+import { api, ApiError, getToken, setToken } from "../api/client";
+import { useApiData, useDebouncedValue } from "../api/useApi";
+import type { Architect, Design, Style, Testimonial, User } from "../api/types";
 
 // ─────────────────────────────────────────────
 // DATA
 // ─────────────────────────────────────────────
 
-const DESIGNS = [
-  {
-    id: 1, title: "Zenith Residence", style: "Minimalist", budget: "₹45 Lakh", budgetNum: 4500000,
-    location: "Bandra, Mumbai", rating: 4.9, reviews: 128, architectId: 1, featured: true,
-    image: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&h=800&fit=crop&auto=format"],
-    description: "A pristine minimalist 3BHK residence that dissolves the boundary between inside and outside. Floor-to-ceiling glass panels frame curated garden views while the palette of concrete, white plaster, and warm oak creates meditative calm.",
-    bedrooms: 3, bathrooms: 3, area: "2,800 sq ft", timeline: "14 months",
-    tags: ["Minimalist", "Open Plan", "Pool", "Garden", "Smart Home"],
-    materials: ["Polished Concrete", "Structural Glass", "White Marble", "Teak Wood", "Corten Steel"],
-  },
-  {
-    id: 2, title: "The Glass Pavilion", style: "Contemporary", budget: "₹85 Lakh", budgetNum: 8500000,
-    location: "Whitefield, Bangalore", rating: 4.8, reviews: 94, architectId: 2, featured: true,
-    image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=700&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1502005097973-6a7082348e76?w=1200&h=800&fit=crop&auto=format"],
-    description: "Inspired by Philip Johnson's glass house, this contemporary pavilion floats amid a curated 1-acre garden. Double-height glass walls retract fully, turning living spaces into open-air terraces in the Bangalore weather.",
-    bedrooms: 4, bathrooms: 4, area: "4,200 sq ft", timeline: "18 months",
-    tags: ["Contemporary", "Glass", "Biophilic", "Double Height", "Luxury"],
-    materials: ["Structural Glass", "Brushed Steel", "White Limestone", "Bamboo", "Reclaimed Teak"],
-  },
-  {
-    id: 3, title: "Terra House", style: "Biophilic", budget: "₹65 Lakh", budgetNum: 6500000,
-    location: "Assagao, Goa", rating: 4.7, reviews: 76, architectId: 4, featured: false,
-    image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=900&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1502005097973-6a7082348e76?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop&auto=format"],
-    description: "A Goan retreat where architecture dissolves into landscape. Living roots and tropical planting cascade across every surface — the home grows alongside its garden, shaped by the rhythms of monsoon and sun.",
-    bedrooms: 3, bathrooms: 3, area: "3,100 sq ft", timeline: "16 months",
-    tags: ["Biophilic", "Tropical", "Pool", "Goa Style", "Sustainable"],
-    materials: ["Laterite Stone", "Bamboo", "Reclaimed Timber", "Lime Plaster", "Copper"],
-  },
-  {
-    id: 4, title: "Citadel Tower", style: "Brutalist", budget: "₹1.2 Crore", budgetNum: 12000000,
-    location: "Greater Kailash, Delhi", rating: 4.6, reviews: 58, architectId: 3, featured: false,
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1539650116574-75c0c6d44e5b?w=1200&h=800&fit=crop&auto=format"],
-    description: "Raw, honest, unapologetic. Board-formed concrete rises four storeys, punctured by dramatic cantilevers and deep shadow-casting recesses. A statement residence dominating its corner plot.",
-    bedrooms: 5, bathrooms: 5, area: "6,800 sq ft", timeline: "24 months",
-    tags: ["Brutalist", "Concrete", "Bold", "Statement", "Urban"],
-    materials: ["Board-Form Concrete", "Weathering Steel", "Smoked Glass", "Black Granite", "Industrial Steel"],
-  },
-  {
-    id: 5, title: "Art Deco Manor", style: "Art Deco", budget: "₹95 Lakh", budgetNum: 9500000,
-    location: "Koregaon Park, Pune", rating: 4.8, reviews: 87, architectId: 5, featured: true,
-    image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=700&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop&auto=format"],
-    description: "Chevrons, stepped cornices, and gilded details reimagined for contemporary living. This Art Deco manor blends 1930s glamour with 21st-century sustainability — solar-integrated, net-zero ready.",
-    bedrooms: 4, bathrooms: 4, area: "5,200 sq ft", timeline: "20 months",
-    tags: ["Art Deco", "Heritage", "Luxury", "Gold Accents", "Garden"],
-    materials: ["Limestone", "Brass", "Terrazzo", "Silk Plaster", "Aged Oak"],
-  },
-  {
-    id: 6, title: "Forge Loft", style: "Industrial", budget: "₹55 Lakh", budgetNum: 5500000,
-    location: "Lower Parel, Mumbai", rating: 4.5, reviews: 112, architectId: 1, featured: false,
-    image: "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800&h=800&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop&auto=format"],
-    description: "Converted from a 1960s textile mill, Forge Loft preserves every inch of industrial heritage — exposed riveted beams, original brick, polished concrete floors — while introducing invisible modern comforts.",
-    bedrooms: 2, bathrooms: 2, area: "1,900 sq ft", timeline: "12 months",
-    tags: ["Industrial", "Loft", "Heritage", "Urban", "Converted"],
-    materials: ["Exposed Brick", "Riveted Steel", "Polished Concrete", "Reclaimed Wood", "Matte Black Iron"],
-  },
-  {
-    id: 7, title: "Futura Villa", style: "Futuristic", budget: "₹1.5 Crore", budgetNum: 15000000,
-    location: "Jubilee Hills, Hyderabad", rating: 4.9, reviews: 63, architectId: 6, featured: true,
-    image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&h=800&fit=crop&auto=format"],
-    description: "Parametric curved forms, integrated photovoltaic skin, and AI-controlled climate make Futura Villa a living machine — Hadid meets Hyderabad. Every curve is load-bearing, every surface generates energy.",
-    bedrooms: 5, bathrooms: 6, area: "7,500 sq ft", timeline: "28 months",
-    tags: ["Futuristic", "Smart Home", "Parametric", "Sustainable", "Luxury"],
-    materials: ["GFRP Panels", "Smart Glass", "Anodised Aluminium", "LED-Concrete", "Carbon Fibre"],
-  },
-  {
-    id: 8, title: "Heritage Bungalow", style: "Colonial", budget: "₹75 Lakh", budgetNum: 7500000,
-    location: "Boat Club Road, Chennai", rating: 4.7, reviews: 91, architectId: 7, featured: false,
-    image: "https://images.unsplash.com/photo-1549497538-b24756bde790?w=800&h=700&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1549497538-b24756bde790?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop&auto=format"],
-    description: "A meticulous restoration of a 1920s colonial bungalow. Every teak column, Mangalore tile, and verandah arch preserved. Modern annexes connect seamlessly within the historic envelope.",
-    bedrooms: 4, bathrooms: 3, area: "4,600 sq ft", timeline: "22 months",
-    tags: ["Colonial", "Heritage", "Restoration", "Teak", "Garden"],
-    materials: ["Teak", "Mangalore Tile", "Madras Terracotta", "Lime Wash", "Brass Hardware"],
-  },
-  {
-    id: 9, title: "Cascade Home", style: "Contemporary", budget: "₹90 Lakh", budgetNum: 9000000,
-    location: "Candolim, Goa", rating: 4.8, reviews: 69, architectId: 4, featured: false,
-    image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=900&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1502005097973-6a7082348e76?w=1200&h=800&fit=crop&auto=format"],
-    description: "Terraced into a gentle hillside, Cascade Home steps toward the Arabian Sea. Each floor commands a distinct view — jungle canopy, silver horizon, crashing surf — unified by white render and natural stone.",
-    bedrooms: 4, bathrooms: 4, area: "3,800 sq ft", timeline: "18 months",
-    tags: ["Contemporary", "Sea View", "Terraced", "Pool", "Goa"],
-    materials: ["White Render", "Basalt Stone", "Marine-Grade Teak", "Mosaic Tile", "Bronze"],
-  },
-  {
-    id: 10, title: "Minimal Cube", style: "Minimalist", budget: "₹48 Lakh", budgetNum: 4800000,
-    location: "Sarjapur, Bangalore", rating: 4.6, reviews: 104, architectId: 2, featured: false,
-    image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop&auto=format"],
-    description: "Pure geometry, radical restraint. A single perfect cube houses a complete 3BHK within. No ornament, no excess: just proportion, light, and the quiet luxury of every deliberate line.",
-    bedrooms: 3, bathrooms: 2, area: "2,400 sq ft", timeline: "11 months",
-    tags: ["Minimalist", "Geometric", "Compact", "Budget-Friendly"],
-    materials: ["White Cement Plaster", "Kota Stone", "Clear Glass", "Mild Steel", "Bamboo"],
-  },
-  {
-    id: 11, title: "Sky Garden", style: "Biophilic", budget: "₹1.1 Crore", budgetNum: 11000000,
-    location: "Golf Links, Delhi", rating: 4.7, reviews: 73, architectId: 3, featured: false,
-    image: "https://images.unsplash.com/photo-1502005097973-6a7082348e76?w=800&h=800&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1502005097973-6a7082348e76?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop&auto=format"],
-    description: "A vertical garden in the heart of Delhi. Sky Garden stacks living planting terraces at every floor level — 800+ plant species cool the home naturally and create a thriving urban ecosystem.",
-    bedrooms: 5, bathrooms: 5, area: "6,200 sq ft", timeline: "22 months",
-    tags: ["Biophilic", "Vertical Garden", "Sustainable", "Delhi", "Luxury"],
-    materials: ["Green Wall System", "Rammed Earth", "Recycled Steel", "Natural Stone", "Teak"],
-  },
-  {
-    id: 12, title: "Steel Canvas", style: "Industrial", budget: "₹60 Lakh", budgetNum: 6000000,
-    location: "Salt Lake, Kolkata", rating: 4.5, reviews: 82, architectId: 8, featured: false,
-    image: "https://images.unsplash.com/photo-1539650116574-75c0c6d44e5b?w=800&h=700&fit=crop&auto=format",
-    gallery: ["https://images.unsplash.com/photo-1539650116574-75c0c6d44e5b?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&h=800&fit=crop&auto=format","https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=800&fit=crop&auto=format"],
-    description: "A former salt godown reimagined as a live-work dwelling. The exposed steel skeleton becomes the architecture — no cladding, no concealment. Suspended pods float within the industrial shell.",
-    bedrooms: 3, bathrooms: 3, area: "3,500 sq ft", timeline: "15 months",
-    tags: ["Industrial", "Adaptive Reuse", "Mezzanine", "Kolkata", "Loft"],
-    materials: ["Exposed Steel", "Polished Concrete", "Wire Glass", "Cork", "Reclaimed Timber"],
-  },
-];
-
-const ARCHITECTS = [
-  {
-    id: 1, name: "Arjun Mehta", title: "Principal Architect", firm: "Mehta Design Studio",
-    location: "Mumbai", experience: 18, rating: 4.9, reviews: 156, projects: 87,
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Minimalist", "Industrial", "Adaptive Reuse"],
-    bio: "Arjun Mehta trained at the AA London and returned to Mumbai with a singular obsession: honest materials. His 18-year practice has redefined luxury residential architecture in Maharashtra — stripping away ornament to reveal the beauty of structure.",
-    awards: ["AIA Young Architect 2014", "Inside World Festival 2019", "Dezeen Award 2022"],
-    startingBudget: "₹40 Lakh", phone: "+91 98765 43210", email: "arjun@mehtadesign.in",
-    website: "mehtadesign.in", instagram: "@arjun.mehta.arch", portfolioIds: [1, 6],
-  },
-  {
-    id: 2, name: "Priya Sharma", title: "Creative Director", firm: "Studio Priya",
-    location: "Bangalore", experience: 12, rating: 4.8, reviews: 124, projects: 54,
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Contemporary", "Minimalist", "Sustainable"],
-    bio: "Priya Sharma is one of India's most sought-after residential architects under 40. Her work in Bangalore has established a vocabulary of quiet luxury that feels deeply local yet internationally relevant.",
-    awards: ["Forbes India 30 Under 30 2018", "NDTV Design Award 2021", "IIID Best Residential 2023"],
-    startingBudget: "₹45 Lakh", phone: "+91 98765 43211", email: "priya@studiopriya.in",
-    website: "studiopriya.in", instagram: "@priya.sharma.architect", portfolioIds: [2, 10],
-  },
-  {
-    id: 3, name: "Rajiv Nair", title: "Founding Partner", firm: "Nair & Associates",
-    location: "Delhi", experience: 22, rating: 4.7, reviews: 198, projects: 112,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Brutalist", "Biophilic", "Institutional"],
-    bio: "Delhi-based Rajiv Nair built his reputation on institutional commissions before turning to high-end residential. His Citadel Tower caused a national conversation about Brutalism's place in Indian cities.",
-    awards: ["Pritzker Jury Citation 2020", "Indian Architect & Builder Award 2019", "RIBA International Award 2023"],
-    startingBudget: "₹75 Lakh", phone: "+91 98765 43212", email: "rajiv@nairassociates.in",
-    website: "nairassociates.in", instagram: "@rajiv.nair.arch", portfolioIds: [4, 11],
-  },
-  {
-    id: 4, name: "Ananya Krishnan", title: "Founder & Lead Designer", firm: "Kri Studio",
-    location: "Goa", experience: 8, rating: 4.8, reviews: 89, projects: 34,
-    image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Biophilic", "Tropical", "Contemporary"],
-    bio: "A Harvard GSD graduate, Ananya Krishnan returned to design houses that breathe — biophilic, cross-ventilated, deeply conscious of the coastal landscape they inhabit.",
-    awards: ["Architectural Digest Top 50 2022", "Wallpaper* Award 2023", "Green Building Award 2022"],
-    startingBudget: "₹55 Lakh", phone: "+91 98765 43213", email: "ananya@kri.studio",
-    website: "kri.studio", instagram: "@ananya.krishnan.arch", portfolioIds: [3, 9],
-  },
-  {
-    id: 5, name: "Vikram Patel", title: "Senior Architect", firm: "Patel Heritage Studio",
-    location: "Pune", experience: 15, rating: 4.6, reviews: 143, projects: 68,
-    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Art Deco", "Heritage", "Luxury"],
-    bio: "Vikram Patel is the architect collectors call when they want history treated with reverence. His Art Deco Manor in Koregaon Park has become one of Pune's most photographed private houses.",
-    awards: ["UNESCO Asia-Pacific Heritage Award 2020", "INTACH Award 2019", "Condé Nast India Award 2022"],
-    startingBudget: "₹60 Lakh", phone: "+91 98765 43214", email: "vikram@patelheritagestudio.in",
-    website: "patelheritagestudio.in", instagram: "@vikram.patel.arch", portfolioIds: [5],
-  },
-  {
-    id: 6, name: "Sonal Agarwal", title: "Design Principal", firm: "Agarwal Futura",
-    location: "Hyderabad", experience: 10, rating: 4.9, reviews: 77, projects: 29,
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Futuristic", "Parametric", "Smart Homes"],
-    bio: "A computational design specialist trained at TU Delft, Sonal uses parametric tools to generate organic forms impossible to achieve by hand — then executes them with surgical precision.",
-    awards: ["Fast Company Innovation Award 2023", "A+Awards Residential 2022", "CII Smart Home Award 2023"],
-    startingBudget: "₹1 Crore", phone: "+91 98765 43215", email: "sonal@agarwalfutura.in",
-    website: "agarwalfutura.in", instagram: "@sonal.agarwal.arch", portfolioIds: [7],
-  },
-  {
-    id: 7, name: "Dev Rajan", title: "Conservation Architect", firm: "Rajan Conservation",
-    location: "Chennai", experience: 20, rating: 4.7, reviews: 131, projects: 91,
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Colonial", "Heritage", "Restoration"],
-    bio: "Dev Rajan is India's foremost colonial conservation architect. His methodology — document everything, disturb nothing, restore only what you understand — has saved dozens of Tamil Nadu's heritage buildings.",
-    awards: ["INTACH Conservation Award 2015 & 2019", "Government of India Heritage Award 2021", "AIA International Award 2022"],
-    startingBudget: "₹50 Lakh", phone: "+91 98765 43216", email: "dev@rajanconservation.in",
-    website: "rajanconservation.in", instagram: "@dev.rajan.arch", portfolioIds: [8],
-  },
-  {
-    id: 8, name: "Meera Kapoor", title: "Architect & Urban Designer", firm: "Kapoor Urban Studio",
-    location: "Kolkata", experience: 7, rating: 4.5, reviews: 68, projects: 22,
-    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&auto=format",
-    specialties: ["Industrial", "Adaptive Reuse", "Urban"],
-    bio: "Meera Kapoor has made adaptive reuse her mission — transforming Kolkata's crumbling industrial heritage into desirable contemporary living. Steel Canvas is the city's most talked-about residential renovation in a decade.",
-    awards: ["Young Gun Award 2022", "Urban Design Award Kolkata 2023", "Housing India Award 2023"],
-    startingBudget: "₹35 Lakh", phone: "+91 98765 43217", email: "meera@kapoorurstudio.in",
-    website: "kapoorurbanstudio.in", instagram: "@meera.kapoor.arch", portfolioIds: [12],
-  },
-];
-
-const TESTIMONIALS = [
-  { id: 1, name: "Rohan Malhotra", location: "Bandra, Mumbai", rating: 5, project: "Zenith Residence",
-    text: "ArchVision AI changed how we thought about our dream home. We weren't looking for an architect — we were looking for a vision. We found both.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&auto=format" },
-  { id: 2, name: "Deepika Rao", location: "Koregaon Park, Pune", rating: 5, project: "Art Deco Manor",
-    text: "I had no idea how to describe what I wanted. The AI recommendation understood me before I understood myself. Truly magical.",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&auto=format" },
-  { id: 3, name: "Karan Mehta", location: "Jubilee Hills, Hyderabad", rating: 5, project: "Futura Villa",
-    text: "The compare feature helped us choose between two incredible architects. We saved ₹20 lakh in the process by finding our perfect match.",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&auto=format" },
-];
-
-const STYLE_TAGS = ["All", "Minimalist", "Contemporary", "Biophilic", "Brutalist", "Art Deco", "Industrial", "Futuristic", "Colonial"];
+// Designs, architects, styles and testimonials now come from the API (see src/api/client.ts).
 
 const FAQS = [
   { q: "How does ArchVision AI match me with architects?", a: "Our AI analyses your style preferences, budget, location, and project scope to surface architects whose portfolio and expertise align precisely with your vision — not just proximity." },
@@ -261,6 +47,36 @@ const useApp = () => useContext(AppCtx);
 
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(" ");
+}
+
+// ─────────────────────────────────────────────
+// LOADING / ERROR / EMPTY STATES
+// ─────────────────────────────────────────────
+
+function LoadingBlock({ label = "Loading…", className = "py-20" }: { label?: string; className?: string }) {
+  return (
+    <div className={cn("flex flex-col items-center justify-center text-slate-500", className)}>
+      <Loader2 size={28} className="animate-spin text-sky-400 mb-3" />
+      <p className="text-sm">{label}</p>
+    </div>
+  );
+}
+
+function ErrorBlock({ message, onRetry, className = "py-20" }: { message: string; onRetry?: () => void; className?: string }) {
+  return (
+    <div className={cn("flex flex-col items-center justify-center text-center px-6", className)}>
+      <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center mb-4">
+        <AlertCircle size={22} className="text-red-400" />
+      </div>
+      <p className="text-white font-semibold mb-2">Something went wrong</p>
+      <p className="text-slate-500 text-sm max-w-md">{message}</p>
+      {onRetry && (
+        <button onClick={onRetry} className="mt-5 px-6 py-2.5 border border-sky-400/30 text-sky-400 hover:bg-sky-400/10 text-sm rounded-xl transition-all">
+          Try again
+        </button>
+      )}
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -306,11 +122,111 @@ function ToastNotification() {
 }
 
 // ─────────────────────────────────────────────
+// AUTH MODAL
+// ─────────────────────────────────────────────
+
+function AuthModal() {
+  const { authOpen, closeAuth, signIn, signUp } = useApp();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (authOpen) {
+      setMode("login");
+      setForm({ name: "", email: "", password: "" });
+      setError(null);
+    }
+  }, [authOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      if (mode === "login") await signIn(form.email, form.password);
+      else await signUp(form.name, form.email, form.password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = "w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-slate-600 outline-none focus:border-sky-400/50 transition-colors";
+
+  return (
+    <AnimatePresence>
+      {authOpen && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={closeAuth}
+          className="fixed inset-0 z-[90] flex items-center justify-center px-6"
+          style={{ background: "rgba(8,15,30,0.75)", backdropFilter: "blur(6px)" }}>
+          <motion.div initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }} transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-md p-8 rounded-3xl bg-[#1E293B] border border-white/8 shadow-2xl">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-bold text-white">
+                  {mode === "login" ? "Welcome back" : "Create your account"}
+                </h2>
+                <p className="text-slate-500 text-sm mt-1">Save designs across all your devices.</p>
+              </div>
+              <button onClick={closeAuth} className="text-slate-500 hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === "register" && (
+                <div>
+                  <label className="text-slate-400 text-xs font-medium block mb-2">Your Name</label>
+                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    required placeholder="Rohan Malhotra" className={inputClass} />
+                </div>
+              )}
+              <div>
+                <label className="text-slate-400 text-xs font-medium block mb-2">Email</label>
+                <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  required type="email" placeholder="rohan@example.com" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs font-medium block mb-2">Password</label>
+                <input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  required type="password" minLength={8} placeholder="At least 8 characters" className={inputClass} />
+              </div>
+
+              {error && (
+                <p className="flex items-center gap-2 text-red-400 text-xs"><AlertCircle size={13} />{error}</p>
+              )}
+
+              <button type="submit" disabled={submitting}
+                className="w-full py-3.5 bg-sky-400 hover:bg-sky-300 disabled:opacity-50 text-[#0F172A] font-semibold text-sm rounded-2xl transition-all flex items-center justify-center gap-2">
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
+                {mode === "login" ? "Sign In" : "Create Account"}
+              </button>
+            </form>
+
+            <p className="text-slate-500 text-sm text-center mt-5">
+              {mode === "login" ? "New to ArchVision?" : "Already have an account?"}{" "}
+              <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(null); }}
+                className="text-sky-400 hover:text-sky-300 transition-colors">
+                {mode === "login" ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─────────────────────────────────────────────
 // NAVBAR
 // ─────────────────────────────────────────────
 
 function Navbar({ currentPage }: { currentPage: string }) {
-  const { navigate, favorites } = useApp();
+  const { navigate, favorites, user, openAuth, signOut } = useApp();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -368,6 +284,19 @@ function Navbar({ currentPage }: { currentPage: string }) {
               </span>
             )}
           </button>
+          {user ? (
+            <button onClick={signOut}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-slate-400 hover:text-white text-sm transition-colors rounded-lg hover:bg-white/5">
+              <LogOut size={15} />
+              <span className="hidden md:block">{user.name.split(" ")[0]}</span>
+            </button>
+          ) : (
+            <button onClick={openAuth}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-slate-400 hover:text-white text-sm transition-colors rounded-lg hover:bg-white/5">
+              <LogIn size={15} />
+              <span className="hidden md:block">Sign In</span>
+            </button>
+          )}
           <button onClick={() => navigate("contact")}
             className="hidden sm:block px-4 py-2 bg-sky-400 hover:bg-sky-300 text-[#0F172A] text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-sky-400/25">
             Get Started
@@ -398,6 +327,10 @@ function Navbar({ currentPage }: { currentPage: string }) {
                 className="w-full text-left py-3 px-3 rounded-xl text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
                 Saved Designs {favorites.length > 0 && `(${favorites.length})`}
               </button>
+              <button onClick={() => { user ? signOut() : openAuth(); setOpen(false); }}
+                className="w-full text-left py-3 px-3 rounded-xl text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                {user ? `Sign out (${user.name.split(" ")[0]})` : "Sign In"}
+              </button>
               <div className="pt-2">
                 <button onClick={() => { navigate("contact"); setOpen(false); }}
                   className="w-full py-2.5 bg-sky-400 text-[#0F172A] font-semibold text-sm rounded-xl">
@@ -417,8 +350,23 @@ function Navbar({ currentPage }: { currentPage: string }) {
 // ─────────────────────────────────────────────
 
 function Footer() {
-  const { navigate } = useApp();
+  const { navigate, showToast } = useApp();
   const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (!email.trim() || subscribing) return;
+    setSubscribing(true);
+    try {
+      await api.subscribeNewsletter(email.trim());
+      showToast("Subscribed! Design inspiration lands every Friday.", "success");
+      setEmail("");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Subscription failed", "error");
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   return (
     <footer className="border-t border-white/8 bg-[#0A1628]">
@@ -491,11 +439,12 @@ function Footer() {
             <p className="text-slate-500 text-sm mb-4">Get weekly design inspiration delivered to your inbox.</p>
             <div className="flex gap-2">
               <input value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSubscribe()}
                 placeholder="your@email.com" type="email"
                 className="flex-1 px-3 py-2.5 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-sky-400/50 transition-colors" />
-              <button onClick={() => setEmail("")}
-                className="px-3 py-2.5 bg-sky-400 hover:bg-sky-300 text-[#0F172A] rounded-xl transition-colors flex-shrink-0">
-                <ArrowRight size={16} />
+              <button onClick={handleSubscribe} disabled={subscribing}
+                className="px-3 py-2.5 bg-sky-400 hover:bg-sky-300 disabled:opacity-50 text-[#0F172A] rounded-xl transition-colors flex-shrink-0">
+                {subscribing ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
               </button>
             </div>
           </div>
@@ -713,10 +662,14 @@ function PageWrap({ children }: { children: ReactNode }) {
 // ─────────────────────────────────────────────
 
 function Landing() {
-  const { navigate } = useApp();
+  const { navigate, setExploreQuery } = useApp();
   const [query, setQuery] = useState("");
   const [searchFocus, setSearchFocus] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const featured = useApiData(() => api.listDesigns({ featured: true }), []);
+  const architects = useApiData(() => api.listArchitects(), []);
+  const testimonials = useApiData(() => api.listTestimonials(), []);
 
   const suggestions = ["Minimalist villa in Mumbai", "Biophilic home in Goa", "Contemporary apartment Bangalore", "Industrial loft Delhi"];
 
@@ -724,10 +677,12 @@ function Landing() {
     ? suggestions.filter(s => s.toLowerCase().includes(query.toLowerCase()))
     : suggestions;
 
-  const handleSearch = () => {
-    if (query.trim()) navigate("explore");
-    else navigate("explore");
+  const searchFor = (term: string) => {
+    setExploreQuery(term.trim());
+    navigate("explore");
   };
+
+  const handleSearch = () => searchFor(query);
 
   return (
     <PageWrap>
@@ -793,7 +748,7 @@ function Landing() {
                   className="absolute top-full left-0 right-0 mt-2 rounded-2xl border border-white/10 overflow-hidden z-20"
                   style={{ background: "rgba(15,23,42,0.97)", backdropFilter: "blur(20px)" }}>
                   {filteredSuggestions.map((s, i) => (
-                    <button key={i} onMouseDown={() => { setQuery(s); navigate("explore"); }}
+                    <button key={i} onMouseDown={() => { setQuery(s); searchFor(s); }}
                       className="w-full text-left px-5 py-3 text-sm text-slate-400 hover:text-white hover:bg-white/5 flex items-center gap-3 transition-colors">
                       <Search size={13} className="text-slate-600" />
                       {s}
@@ -808,7 +763,7 @@ function Landing() {
             className="flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600">
             <span>Trending:</span>
             {["Minimalist", "Biophilic", "Industrial", "Art Deco"].map(tag => (
-              <button key={tag} onClick={() => navigate("explore")}
+              <button key={tag} onClick={() => searchFor(tag)}
                 className="text-slate-400 hover:text-sky-400 transition-colors underline underline-offset-2">{tag}</button>
             ))}
           </motion.div>
@@ -870,7 +825,7 @@ function Landing() {
             <motion.button key={style} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }} transition={{ delay: i * 0.05 }}
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-              onClick={() => navigate("explore")}
+              onClick={() => searchFor(style)}
               className={cn("flex items-center gap-2.5 px-5 py-3 rounded-2xl border border-white/10 bg-gradient-to-br", color, "text-white hover:border-sky-400/40 transition-all duration-200")}>
               <span className="font-medium text-sm">{style}</span>
               <span className="text-xs text-slate-500 font-mono">{count}</span>
@@ -895,14 +850,20 @@ function Landing() {
             View all <ArrowRight size={14} />
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {DESIGNS.filter(d => d.featured).map((d, i) => (
-            <motion.div key={d.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-              <DesignCard design={d} />
-            </motion.div>
-          ))}
-        </div>
+        {featured.loading ? (
+          <LoadingBlock label="Loading featured designs…" />
+        ) : featured.error ? (
+          <ErrorBlock message={featured.error} onRetry={featured.reload} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(featured.data?.designs ?? []).map((d, i) => (
+              <motion.div key={d.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                <DesignCard design={d} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* POPULAR ARCHITECTS */}
@@ -922,14 +883,20 @@ function Landing() {
               All architects <ArrowRight size={14} />
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {ARCHITECTS.slice(0, 4).map((a, i) => (
-              <motion.div key={a.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <ArchitectCard architect={a} />
-              </motion.div>
-            ))}
-          </div>
+          {architects.loading ? (
+            <LoadingBlock label="Loading architects…" />
+          ) : architects.error ? (
+            <ErrorBlock message={architects.error} onRetry={architects.reload} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {(architects.data?.architects ?? []).slice(0, 4).map((a, i) => (
+                <motion.div key={a.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                  <ArchitectCard architect={a} />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -946,7 +913,7 @@ function Landing() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t, i) => (
+          {(testimonials.data?.testimonials ?? []).map((t, i) => (
             <motion.div key={t.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               className="p-6 rounded-2xl border border-white/8 bg-[#1E293B]/60 backdrop-blur-sm">
@@ -1040,23 +1007,38 @@ function Landing() {
 // ─────────────────────────────────────────────
 
 function Explore() {
-  const { navigate } = useApp();
+  const { exploreQuery, setExploreQuery, styles } = useApp();
   const [activeStyle, setActiveStyle] = useState("All");
   const [sortBy, setSortBy] = useState("rating");
   const [budgetMax, setBudgetMax] = useState(15000000);
-  const [searchQ, setSearchQ] = useState("");
+  const [searchQ, setSearchQ] = useState(exploreQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [viewTab, setViewTab] = useState<"designs" | "architects">("designs");
+  const debouncedQ = useDebouncedValue(searchQ);
 
-  const filtered = DESIGNS
-    .filter(d => activeStyle === "All" || d.style === activeStyle)
-    .filter(d => d.budgetNum <= budgetMax)
-    .filter(d => d.title.toLowerCase().includes(searchQ.toLowerCase()) || d.location.toLowerCase().includes(searchQ.toLowerCase()))
-    .sort((a, b) => sortBy === "rating" ? b.rating - a.rating : sortBy === "budget-low" ? a.budgetNum - b.budgetNum : b.budgetNum - a.budgetNum);
+  // The landing-page search box seeds this page, then hands control back to it.
+  useEffect(() => { if (exploreQuery) setExploreQuery(""); }, [exploreQuery, setExploreQuery]);
 
-  const filteredArchitects = ARCHITECTS
-    .filter(a => activeStyle === "All" || a.specialties.includes(activeStyle))
-    .filter(a => a.name.toLowerCase().includes(searchQ.toLowerCase()) || a.location.toLowerCase().includes(searchQ.toLowerCase()));
+  const styleTags = ["All", ...styles.map((s: Style) => s.name)];
+
+  const designs = useApiData(
+    () => api.listDesigns({
+      q: debouncedQ,
+      style: activeStyle === "All" ? "" : activeStyle,
+      maxBudget: budgetMax,
+      sort: sortBy,
+    }),
+    [debouncedQ, activeStyle, budgetMax, sortBy]
+  );
+
+  const architects = useApiData(
+    () => api.listArchitects({ q: debouncedQ, style: activeStyle === "All" ? "" : activeStyle }),
+    [debouncedQ, activeStyle]
+  );
+
+  const filtered = designs.data?.designs ?? [];
+  const filteredArchitects = architects.data?.architects ?? [];
+  const active = viewTab === "designs" ? designs : architects;
 
   const budgetLabel = budgetMax >= 10000000 ? `₹${(budgetMax / 10000000).toFixed(1)} Cr` :
     `₹${(budgetMax / 100000).toFixed(0)} Lakh`;
@@ -1073,7 +1055,9 @@ function Explore() {
                   {viewTab === "designs" ? "Explore Designs" : "Browse Architects"}
                 </h1>
                 <p className="text-slate-500 text-sm mt-1">
-                  {viewTab === "designs" ? `${filtered.length} designs found` : `${filteredArchitects.length} architects found`}
+                  {active.loading
+                    ? "Searching…"
+                    : viewTab === "designs" ? `${filtered.length} designs found` : `${filteredArchitects.length} architects found`}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -1107,7 +1091,7 @@ function Explore() {
 
             {/* Style filters */}
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {STYLE_TAGS.map(s => (
+              {styleTags.map((s: string) => (
                 <button key={s} onClick={() => setActiveStyle(s)}
                   className={cn("px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 border flex-shrink-0",
                     activeStyle === s ? "bg-sky-400 text-[#0F172A] border-sky-400" : "border-white/10 text-slate-400 hover:text-white hover:border-white/25")}>
@@ -1149,7 +1133,11 @@ function Explore() {
 
         {/* Results */}
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {viewTab === "designs" ? (
+          {active.loading ? (
+            <LoadingBlock label={viewTab === "designs" ? "Loading designs…" : "Loading architects…"} />
+          ) : active.error ? (
+            <ErrorBlock message={active.error} onRetry={active.reload} />
+          ) : viewTab === "designs" ? (
             filtered.length > 0 ? (
               <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
                 {filtered.map(d => (
@@ -1166,9 +1154,16 @@ function Explore() {
                   className="mt-4 text-sky-400 text-sm hover:underline">Clear filters</button>
               </div>
             )
-          ) : (
+          ) : filteredArchitects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredArchitects.map(a => <ArchitectCard key={a.id} architect={a} />)}
+            </div>
+          ) : (
+            <div className="text-center py-20 text-slate-500">
+              <Users size={40} className="mx-auto mb-4 opacity-30" />
+              <p className="text-lg">No architects match your filters</p>
+              <button onClick={() => { setActiveStyle("All"); setSearchQ(""); }}
+                className="mt-4 text-sky-400 text-sm hover:underline">Clear filters</button>
             </div>
           )}
         </div>
@@ -1183,13 +1178,27 @@ function Explore() {
 
 function DesignDetails({ designId }: { designId: number | null }) {
   const { navigate, favorites, toggleFavorite, showToast } = useApp();
-  const design = DESIGNS.find(d => d.id === designId) || DESIGNS[0];
-  const architect = ARCHITECTS.find(a => a.id === design.architectId)!;
-  const similar = DESIGNS.filter(d => d.style === design.style && d.id !== design.id).slice(0, 3);
   const [activeImg, setActiveImg] = useState(0);
-  const isFav = favorites.includes(design.id);
+
+  const { data, loading, error, reload } = useApiData(() => api.getDesign(designId as number), [designId]);
 
   useEffect(() => { setActiveImg(0); }, [designId]);
+
+  if (loading) {
+    return <PageWrap><div className="pt-24 min-h-screen"><LoadingBlock label="Loading design…" className="py-40" /></div></PageWrap>;
+  }
+  if (error || !data) {
+    return (
+      <PageWrap>
+        <div className="pt-24 min-h-screen">
+          <ErrorBlock message={error || "Design not found"} onRetry={reload} className="py-40" />
+        </div>
+      </PageWrap>
+    );
+  }
+
+  const { design, architect, similar } = data;
+  const isFav = favorites.includes(design.id);
 
   return (
     <PageWrap>
@@ -1304,11 +1313,13 @@ function DesignDetails({ designId }: { designId: number | null }) {
               </div>
 
               {/* Actions */}
-              <button onClick={() => navigate("architect", architect.id)}
-                className="w-full py-3.5 bg-sky-400 hover:bg-sky-300 text-[#0F172A] font-semibold rounded-2xl transition-all text-sm flex items-center justify-center gap-2">
-                <Users size={16} />
-                View Architect Profile
-              </button>
+              {architect && (
+                <button onClick={() => navigate("architect", architect.id)}
+                  className="w-full py-3.5 bg-sky-400 hover:bg-sky-300 text-[#0F172A] font-semibold rounded-2xl transition-all text-sm flex items-center justify-center gap-2">
+                  <Users size={16} />
+                  View Architect Profile
+                </button>
+              )}
               <button
                 onClick={() => { toggleFavorite(design.id); showToast(isFav ? "Removed" : "Saved!", isFav ? "info" : "success"); }}
                 className={cn("w-full py-3.5 rounded-2xl border font-semibold text-sm flex items-center justify-center gap-2 transition-all",
@@ -1322,6 +1333,7 @@ function DesignDetails({ designId }: { designId: number | null }) {
               </button>
 
               {/* Architect preview */}
+              {architect && (
               <div className="p-5 rounded-2xl bg-[#1E293B] border border-white/8">
                 <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-4">Designed by</p>
                 <div className="flex items-center gap-4 mb-4">
@@ -1340,6 +1352,7 @@ function DesignDetails({ designId }: { designId: number | null }) {
                   View Full Profile
                 </button>
               </div>
+              )}
             </div>
           </div>
 
@@ -1364,8 +1377,22 @@ function DesignDetails({ designId }: { designId: number | null }) {
 
 function ArchitectProfile({ architectId }: { architectId: number | null }) {
   const { navigate, showToast } = useApp();
-  const architect = ARCHITECTS.find(a => a.id === architectId) || ARCHITECTS[0];
-  const portfolio = DESIGNS.filter(d => architect.portfolioIds.includes(d.id));
+  const { data, loading, error, reload } = useApiData(() => api.getArchitect(architectId as number), [architectId]);
+
+  if (loading) {
+    return <PageWrap><div className="pt-24 min-h-screen"><LoadingBlock label="Loading profile…" className="py-40" /></div></PageWrap>;
+  }
+  if (error || !data) {
+    return (
+      <PageWrap>
+        <div className="pt-24 min-h-screen">
+          <ErrorBlock message={error || "Architect not found"} onRetry={reload} className="py-40" />
+        </div>
+      </PageWrap>
+    );
+  }
+
+  const { architect, portfolio } = data;
 
   return (
     <PageWrap>
@@ -1512,28 +1539,18 @@ function AIPage() {
     setInput("");
     setMessages(prev => [...prev, { role: "user", text: t, results: null }]);
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1800));
-
-    // Smart-ish matching based on keywords
-    const lowerT = t.toLowerCase();
-    let results = DESIGNS;
-    if (lowerT.includes("minimalist")) results = DESIGNS.filter(d => d.style === "Minimalist");
-    else if (lowerT.includes("biophilic") || lowerT.includes("green") || lowerT.includes("nature")) results = DESIGNS.filter(d => d.style === "Biophilic");
-    else if (lowerT.includes("industrial") || lowerT.includes("loft")) results = DESIGNS.filter(d => d.style === "Industrial");
-    else if (lowerT.includes("contemporary") || lowerT.includes("modern")) results = DESIGNS.filter(d => d.style === "Contemporary");
-    else if (lowerT.includes("goa") || lowerT.includes("coastal")) results = DESIGNS.filter(d => d.location.toLowerCase().includes("goa"));
-    else if (lowerT.includes("mumbai")) results = DESIGNS.filter(d => d.location.toLowerCase().includes("mumbai"));
-    else if (lowerT.includes("bangalore") || lowerT.includes("bengaluru")) results = DESIGNS.filter(d => d.location.toLowerCase().includes("bangalore"));
-
-    if (results.length === 0) results = DESIGNS.slice(0, 3);
-    results = results.slice(0, 3);
-
-    setMessages(prev => [...prev, {
-      role: "ai",
-      text: `Based on your requirements, here are my top ${results.length} recommendation${results.length !== 1 ? "s" : ""}:`,
-      results,
-    }]);
-    setLoading(false);
+    try {
+      const { reply, results } = await api.aiMatch(t);
+      setMessages(prev => [...prev, { role: "ai", text: reply, results: results.length ? results : null }]);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: "ai",
+        text: err instanceof Error ? err.message : "The matcher is unavailable right now. Please try again.",
+        results: null,
+      }]);
+    } finally {
+      setLoading(false);
+    }
   }, [loading]);
 
   return (
@@ -1627,18 +1644,33 @@ function AIPage() {
 // ─────────────────────────────────────────────
 
 function FavoritesPage() {
-  const { navigate, favorites, toggleFavorite, showToast } = useApp();
-  const savedDesigns = DESIGNS.filter(d => favorites.includes(d.id));
+  const { navigate, favorites, toggleFavorite, showToast, user, openAuth } = useApp();
+  const { data, loading, error, reload } = useApiData(() => api.listDesigns(), []);
+  const savedDesigns = (data?.designs ?? []).filter((d: Design) => favorites.includes(d.id));
 
   return (
     <PageWrap>
       <div className="pt-24 min-h-screen max-w-7xl mx-auto px-6 pb-16">
         <div className="mb-10">
           <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-3xl font-bold text-white mb-2">Saved Designs</h1>
-          <p className="text-slate-500">{savedDesigns.length} {savedDesigns.length === 1 ? "design" : "designs"} saved</p>
+          <p className="text-slate-500">
+            {savedDesigns.length} {savedDesigns.length === 1 ? "design" : "designs"} saved
+            {!user && savedDesigns.length > 0 && (
+              <>
+                {" · "}
+                <button onClick={openAuth} className="text-sky-400 hover:text-sky-300 transition-colors">
+                  Sign in to keep them
+                </button>
+              </>
+            )}
+          </p>
         </div>
 
-        {savedDesigns.length === 0 ? (
+        {loading ? (
+          <LoadingBlock label="Loading saved designs…" />
+        ) : error ? (
+          <ErrorBlock message={error} onRetry={reload} />
+        ) : savedDesigns.length === 0 ? (
           <div className="text-center py-32">
             <div className="w-20 h-20 bg-[#1E293B] border border-white/8 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <Heart size={32} className="text-slate-600" />
@@ -1679,15 +1711,17 @@ function ComparePage() {
   const { navigate } = useApp();
   const [archA, setArchA] = useState<number | "">("");
   const [archB, setArchB] = useState<number | "">("");
+  const { data, loading, error, reload } = useApiData(() => api.listArchitects(), []);
 
-  const a = ARCHITECTS.find(arch => arch.id === Number(archA));
-  const b = ARCHITECTS.find(arch => arch.id === Number(archB));
+  const architects = data?.architects ?? [];
+  const a = architects.find(arch => arch.id === Number(archA));
+  const b = architects.find(arch => arch.id === Number(archB));
 
   const metrics = [
-    { label: "Experience", aVal: a?.experience + " years", bVal: b?.experience + " years", aNum: a?.experience, bNum: b?.experience },
-    { label: "Rating", aVal: a?.rating, bVal: b?.rating, aNum: a?.rating, bNum: b?.rating },
-    { label: "Projects Completed", aVal: a?.projects, bVal: b?.projects, aNum: a?.projects, bNum: b?.projects },
-    { label: "Client Reviews", aVal: a?.reviews, bVal: b?.reviews, aNum: a?.reviews, bNum: b?.reviews },
+    { label: "Experience", aVal: a?.experience + " years", bVal: b?.experience + " years", aNum: a?.experience ?? null, bNum: b?.experience ?? null },
+    { label: "Rating", aVal: a?.rating, bVal: b?.rating, aNum: a?.rating ?? null, bNum: b?.rating ?? null },
+    { label: "Projects Completed", aVal: a?.projects, bVal: b?.projects, aNum: a?.projects ?? null, bNum: b?.projects ?? null },
+    { label: "Client Reviews", aVal: a?.reviews, bVal: b?.reviews, aNum: a?.reviews ?? null, bNum: b?.reviews ?? null },
     { label: "Starting Budget", aVal: a?.startingBudget, bVal: b?.startingBudget, aNum: null, bNum: null },
     { label: "Location", aVal: a?.location, bVal: b?.location, aNum: null, bNum: null },
   ];
@@ -1707,8 +1741,8 @@ function ComparePage() {
               <label className="text-slate-400 text-sm font-medium block mb-3">{label}</label>
               <select value={val} onChange={e => setter(e.target.value === "" ? "" : Number(e.target.value))}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-sky-400/40 transition-colors">
-                <option value="">Select an architect…</option>
-                {ARCHITECTS.map(arch => (
+                <option value="">{loading ? "Loading architects…" : "Select an architect…"}</option>
+                {architects.map(arch => (
                   <option key={arch.id} value={arch.id}>{arch.name} — {arch.firm}</option>
                 ))}
               </select>
@@ -1716,7 +1750,9 @@ function ComparePage() {
           ))}
         </div>
 
-        {a && b ? (
+        {error ? (
+          <ErrorBlock message={error} onRetry={reload} />
+        ) : a && b ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Profile headers */}
             <div className="grid grid-cols-2 gap-6 mb-6">
@@ -1783,6 +1819,7 @@ function ComparePage() {
 
 function AboutPage() {
   const { navigate } = useApp();
+  const { data } = useApiData(() => api.listArchitects(), []);
   const values = [
     { title: "Design-Led Discovery", desc: "We believe you should fall in love with a building before you meet its creator. Design leads; architects follow.", icon: Eye },
     { title: "Radical Transparency", desc: "Budgets, timelines, reviews — all real, all verified. No surprises, no commission-driven recommendations.", icon: Check },
@@ -1866,7 +1903,7 @@ function AboutPage() {
               <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-3xl font-bold text-white">Meet the Team</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {ARCHITECTS.slice(0, 4).map((a, i) => (
+              {(data?.architects ?? []).slice(0, 4).map((a, i) => (
                 <motion.div key={a.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                   className="text-center">
@@ -1898,11 +1935,21 @@ function AboutPage() {
 function ContactPage() {
   const { showToast } = useApp();
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast("Message sent! We'll be in touch within 24 hours.", "success");
-    setForm({ name: "", email: "", subject: "", message: "" });
+    if (sending) return;
+    setSending(true);
+    try {
+      await api.createInquiry(form);
+      showToast("Message sent! We'll be in touch within 24 hours.", "success");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not send your message", "error");
+    } finally {
+      setSending(false);
+    }
   };
 
   const info = [
@@ -1957,10 +2004,10 @@ function ContactPage() {
                   required rows={5} placeholder="Tell us how we can help..."
                   className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-slate-600 outline-none focus:border-sky-400/50 transition-colors resize-none" />
               </div>
-              <button type="submit"
-                className="w-full py-4 bg-sky-400 hover:bg-sky-300 text-[#0F172A] font-semibold text-sm rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-400/20">
-                <Send size={16} />
-                Send Message
+              <button type="submit" disabled={sending}
+                className="w-full py-4 bg-sky-400 hover:bg-sky-300 disabled:opacity-50 text-[#0F172A] font-semibold text-sm rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-400/20">
+                {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                {sending ? "Sending…" : "Send Message"}
               </button>
             </form>
           </div>
@@ -2013,12 +2060,57 @@ function ContactPage() {
 // APP ROOT
 // ─────────────────────────────────────────────
 
+const LOCAL_FAVORITES_KEY = "archivis.favorites";
+
+function readLocalFavorites(): number[] {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOCAL_FAVORITES_KEY) || "[]");
+    return Array.isArray(stored) ? stored.filter((id: unknown) => typeof id === "number") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalFavorites(ids: number[]) {
+  try {
+    localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(ids));
+  } catch {
+    /* storage unavailable — favourites stay in memory for this session */
+  }
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState("home");
   const [selectedDesignId, setSelectedDesignId] = useState<number | null>(null);
   const [selectedArchitectId, setSelectedArchitectId] = useState<number | null>(null);
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<number[]>(readLocalFavorites);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [exploreQuery, setExploreQuery] = useState("");
+  const [styles, setStyles] = useState<Style[]>([]);
+
+  const showToast = useCallback((msg: string, type = "success") => {
+    setToast({ msg, type });
+  }, []);
+
+  useEffect(() => {
+    api.listStyles().then(({ styles }) => setStyles(styles)).catch(() => setStyles([]));
+  }, []);
+
+  // Restore a previous session; favourites then come from the account instead of localStorage.
+  useEffect(() => {
+    if (!getToken()) return;
+    api.me()
+      .then(({ user }) => {
+        setUser(user);
+        return api.listFavorites();
+      })
+      .then(result => result && setFavorites(result.designIds))
+      .catch(error => {
+        if (error instanceof ApiError && error.status === 401) setToken(null);
+      });
+  }, []);
 
   const navigate = useCallback((page: string, id?: number | null) => {
     setCurrentPage(page);
@@ -2028,14 +2120,57 @@ export default function App() {
   }, []);
 
   const toggleFavorite = useCallback((id: number) => {
-    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
-  }, []);
+    const next = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
+    setFavorites(next);
 
-  const showToast = useCallback((msg: string, type = "success") => {
-    setToast({ msg, type });
-  }, []);
+    if (!user) {
+      writeLocalFavorites(next);
+      return;
+    }
+    const persist = favorites.includes(id) ? api.removeFavorite(id) : api.addFavorite(id);
+    persist
+      .then(({ designIds }) => setFavorites(designIds))
+      .catch(error => {
+        setFavorites(favorites);
+        showToast(error instanceof Error ? error.message : "Could not update saved designs", "error");
+      });
+  }, [favorites, user, showToast]);
 
-  const ctx = { currentPage, navigate, favorites, toggleFavorite, toast, setToast, showToast };
+  // Anonymous favourites are merged into the account on the first sign-in.
+  const completeAuth = useCallback(async (token: string, authUser: User) => {
+    setToken(token);
+    setUser(authUser);
+    const local = readLocalFavorites();
+    const { designIds } = local.length ? await api.syncFavorites(local) : await api.listFavorites();
+    writeLocalFavorites([]);
+    setFavorites(designIds);
+    setAuthOpen(false);
+    showToast(`Signed in as ${authUser.name}`, "success");
+  }, [showToast]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { token, user: authUser } = await api.login({ email, password });
+    await completeAuth(token, authUser);
+  }, [completeAuth]);
+
+  const signUp = useCallback(async (name: string, email: string, password: string) => {
+    const { token, user: authUser } = await api.register({ name, email, password });
+    await completeAuth(token, authUser);
+  }, [completeAuth]);
+
+  const signOut = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setFavorites(readLocalFavorites());
+    showToast("Signed out", "info");
+  }, [showToast]);
+
+  const ctx = {
+    currentPage, navigate, favorites, toggleFavorite, toast, setToast, showToast,
+    user, signIn, signUp, signOut,
+    authOpen, openAuth: () => setAuthOpen(true), closeAuth: () => setAuthOpen(false),
+    exploreQuery, setExploreQuery, styles,
+  };
 
   return (
     <AppCtx.Provider value={ctx}>
@@ -2057,6 +2192,7 @@ export default function App() {
 
         {!["ai"].includes(currentPage) && <Footer />}
         <FAB />
+        <AuthModal />
         <ToastNotification />
       </div>
     </AppCtx.Provider>
