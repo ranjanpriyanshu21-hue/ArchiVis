@@ -582,7 +582,7 @@ function ArchitectCard({ architect }: { architect: any }) {
       className="group bg-[#1E293B] border border-white/8 rounded-2xl overflow-hidden cursor-pointer">
       <div className="relative h-48 overflow-hidden">
         <img src={architect.image} alt={architect.name}
-          className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-110" />
+          className="w-full h-full object-cover object-centre transition-transform duration-500 group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1E293B] via-[#1E293B]/20 to-transparent" />
         <div className="absolute bottom-4 left-4">
           <div className="flex gap-1.5">
